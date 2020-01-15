@@ -1,0 +1,27 @@
+# 11/01/2020
+# Deivid Soares
+# Setup inicial Application Gateway Ingress Controller (AGIC)
+
+# Inicialização do HEML para clusters com RBAC
+kubectl create serviceaccount --namespace kube-system tiller-sa
+kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller-sa
+helm init --tiller-namespace kube-system --service-account tiller-sa
+
+# Adição do repositório 
+helm repo add application-gateway-kubernetes-ingress https://appgwingress.blob.core.windows.net/ingress-azure-helm-package/
+helm repo update
+
+# Criação de service principal com credenciais em base64
+az ad sp create-for-rbac --sdk-auth | base64 -w0
+
+# Saída do comando acima (Exemplo)
+ewogICJjbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaawMzY1ejdkNi0xMDZlLTQ2OWEtOWxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxiAiOTg5MDJjOWMtNWRiYi00MmE5LTk4MjMtMTJkNTM4OWNlYjYyIiwKICAic3Vic2NyaXB0aW9uSWQiOiAiMTMyNDI3MmEtMjk0OS00ZDA1LTg1ZjktZWFiNWE0ZTlmZTBkIiwKICAidGVuYW50SWQiOiAiYTcyMjBmZDgtYjcxYi00NGY5LWIxNTMtMTE3ZjZhNmE3YjJmIiwKICAiYWN0aXZlRGlyZWN0b3J5RW5kcG9pbnRVcmwiOiAiaHR0cHM6Ly9sb2dpbi5taWNyb3NvZnRvbmxpbmUuY29tIiwKICAicmVzb3VyY2VNYW5hZ2VyRW5kcG9pbnRVcmwiOiAiaHR0cHM6Ly9tYW5hZ2VtZW50LmF6dXJlLmNvbS8iLAogICJhY3RpdmVEaXJlY3RvcnlHcmFwaFJlc291cmNlSWQiOiAiaHR0cHM6Ly9ncmFwaC53aW5kb3dzLm5ldC8iLAogICJzcWxNYW5hZ2VtZW50RW5kcG9pbnRVcmwiOiAiaHR0cHM6Ly9tYW5hZ2VtZW50LmNvcmUud2luZG93cy5uZXQ6ODQ0My8iLAogICJnYWxsZXJ5RW5kcG9pbnRVcmwiOiAiaHR0cHM6Ly9nYWxsZXJ5LmF6dXJlLmNvbS8iLAogICJtYW5hZ2VtZW50RW5kcG9pbnRVcmwiOiAiaHR0cHM6Ly9tYW5hZ2VtZW50LmNvcmUud2luZG93cy5uZXQvIgp9Cg==
+
+# Install a partir do arquivo
+helm install -f helm-config.yaml application-gateway-kubernetes-ingress/ingress-azure
+
+# Instalação de aplicação para teste
+kubectl apply -f guestbook-all-in-one.yaml
+
+# Criação do ingress
+kubectl apply -f agic-ingress.yaml

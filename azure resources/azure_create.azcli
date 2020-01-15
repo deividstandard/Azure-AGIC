@@ -1,0 +1,45 @@
+# 11/01/2020
+# Deivid Soares
+# Criação da infraestrutura necessária para testes com App Gateway + AKS
+
+# Login no Azure
+az login 
+
+# Listagem das assinaturas disponíveis
+az account list -o table
+
+# Set da assinatura
+az account set -s xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+# Criação do grupo onde serão criados os recursos
+az group create -n GRTST-RORY-GALLAGHER-01 -l eastus
+
+# Criação da rede para AKS e App Gateway
+az network vnet create -n VNETST-RORY-GALLAGHER-01 -g GRTST-RORY-GALLAGHER-01 --address-prefixes 10.0.0.0/16 --subnet-name SNTST-AKS-01 --subnet-prefixes 10.0.0.0/22
+
+# Criação da subnet para App Gateway
+az network vnet subnet create --vnet-name VNETST-RORY-GALLAGHER-01 -n SNTST-APPG-01 -g GRTST-RORY-GALLAGHER-01 --address-prefixes 10.0.4.0/22
+
+# Criação do Registro privado para as imagens (Opcional)
+az acr create -n ACRTSTRORYGALLAGHER01 -g GRTST-RORY-GALLAGHER-01 -l eastus --sku Basic
+
+# Criação do service principal para AKS
+az ad sp create-for-rbac --skip-assignment
+
+# Informações do service principal
+{
+  "appId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "displayName": "azure-cli-xxxx-xx-xx-xx-xx-xx",
+  "name": "http://azure-cli-xxxx-xx-xx-xx-xx-xx",
+  "password": "xxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "tenant": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+}
+
+# Criação do AKS
+az aks create --name AKSTST-RORY-GALLAGHER --resource-group GRTST-RORY-GALLAGHER-01 --service-principal xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx --node-count 1 --client-secret xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx --node-osdisk-size 100 --node-vm-size Standard_D4s_v3 --dns-name-prefix akstst --vnet-subnet-id /subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/GRTST-RORY-GALLAGHER-01/providers/Microsoft.Network/virtualNetworks/VNETST-RORY-GALLAGHER-01/subnets/SNTST-AKS-01 --dns-service-ip 10.1.0.10 --docker-bridge-address 172.0.0.1/16 --service-cidr 10.1.0.0/16 --network-plugin azure --location eastus --attach-acr ACRTSTRORYGALLAGHER01 --vm-set-type AvailabilitySet --max-pods 50
+
+# Criação de IP público para App Gateway
+az network public-ip create -n IPTST-RORY-GALLAGHER-01 -g GRTST-RORY-GALLAGHER-01 --allocation-method Static -l eastus --sku Standard
+
+# Criação do Application Gateway
+az network application-gateway create -n APGTST-RORY-GALLAGHER-01 -g GRTST-RORY-GALLAGHER-01 -l eastus --sku WAF_v2 --subnet SNTST-APPG-01 --vnet-name VNETST-RORY-GALLAGHER-01 --public-ip-address IPTST-RORY-GALLAGHER-01 --private-ip-address 10.0.4.10 
